@@ -1,0 +1,24 @@
+{
+  "name": "terramake",
+  "version": "1.0.0",
+  "description": "Type-safe Infrastructure-as-Code",
+  "main": "index.js",
+  "bin": {
+    "terramake": "./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/karandit/terramake.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/karandit/terramake/issues"
+  },
+  "homepage": "https://github.com/karandit/terramake#readme",
+  "dependencies": {
+    "meow": "5.0.0",
+    "node-elm-compiler": "4.5.0",
+    "temp": "0.8.3"
+  }
+}
