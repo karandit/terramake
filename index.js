@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-var fs = require('fs')
-var temp = require('temp').track()
-var compiler = require('node-elm-compiler')
-var meow = require('meow')
+const ELM_VER = '0.18.0';
+const IAC_OUTPUT = 'iac';
 
-var cli = meow(`
+const fs = require('fs');
+const path = require('path');
+const compiler = require('node-elm-compiler')
+const elmiParser = require('node-elm-repl/src/parser.js');
+const meow = require('meow')
+const cli = meow(`
     Usage
       $ terramake
 `)
@@ -13,15 +16,101 @@ if (!fs.existsSync('./elm-package.json')) {
   fail('Error: This command needs to be executed from the root of the elm project.')
 }
 
-var sourcePath = cli.input[0]
-var targetPath = temp.path({ suffix: '.js' })
-compiler.compileSync([sourcePath], {
-  yes: true,
-  output: targetPath,
-  processOpts: { stdio: 'pipe' }
-})
-var Elm = require(targetPath)
-var app = Elm.Main.worker()
+var elmPackageJson = JSON.parse(fs.readFileSync('./elm-package.json', 'utf8'));
+
+const repoRegExp = /https?:\/\/github\.com\/(\w*)\/(\w*)\.git/;
+var repoMatches = repoRegExp.exec(elmPackageJson.repository);
+if (repoMatches == null) {
+  fail('Error: The elm-package.json contains an invalid value for the repository field.')
+}
+elmPackageJson.user = repoMatches[1];
+elmPackageJson.package = repoMatches[2];
+
+const elmFilePaths = elmPackageJson['source-directories'].reduce((acc, srcDir) => acc.concat(walkSync(srcDir)), []);
+
+var targetPath = path.join(process.cwd(), IAC_OUTPUT, elmPackageJson.package + '.js');
+var compileOptions = { output: targetPath, yes: true, verbose: true, warn: true, processOpts: { stdio: 'pipe' } };
+
+//TODO: figure out how to not save to a file the js (see: compileString)
+compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compileOptions)
+.on('close', function(exitCode) {
+  if (exitCode == 0) {
+    console.log('Successfully compiled.');
+    console.log();
+    var Elm = require(targetPath);
+    elmFilePaths.forEach(pathParts => {
+      const elmPathParts = pathParts.slice(1);
+      const moduleElmiPath = getModuleElmiPath(elmPackageJson, elmPathParts);
+      const buffer = fs.readFileSync(moduleElmiPath);
+      var parsedModule = elmiParser.parse(buffer);
+
+      if (isTerramakeMainModule(parsedModule)) {
+        var elmModules = elmPathParts.map(x => x.replace(/.elm/, ''));
+        console.log("Output generated for module " + elmModules.join(path.sep));
+
+        var iacDirs = [IAC_OUTPUT].concat(elmModules.slice(0, elmModules.length - 1))
+        iacDirs.reduce((currentPath, folder) => {
+           var newPath = path.join(currentPath, folder);
+           if (!fs.existsSync(newPath)){
+             fs.mkdirSync(newPath);
+           }
+           return newPath;
+         }, '');
+
+        var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
+        elmModule.worker({ "filePath" : [IAC_OUTPUT].concat(elmModules).join(path.sep)});
+      }
+    });
+ }
+});
+
+function isTerramakeMainModule(parsedModule) {
+  return parsedModule.types.some(f =>
+           f.name == 'main'
+        && f.value.type =='app'
+
+        && f.value.subject.type == 'type'
+        && f.value.subject.def.name == 'Program'
+        && f.value.subject.def.user == 'elm-lang'
+        && f.value.subject.def.package == 'core'
+        && f.value.subject.def.path[0] == 'Platform'
+
+        && f.value.object.length == 3
+
+        && f.value.object[0].type == 'aliased'
+        && f.value.object[0].def.name == 'Flags'
+        && f.value.object[0].def.user == 'karandit'
+        && f.value.object[0].def.package == 'elm-terramake'
+        && f.value.object[0].def.path[0] == 'Terramake'
+
+        && f.value.object[1].type == 'type'
+        && f.value.object[1].def.name == '_Tuple0'
+
+        && f.value.object[2].type == 'type'
+        && f.value.object[2].def.name == '_Tuple0');
+}
+
+function getModuleElmiPath(options, moduleNameParts) {
+    return path.join('elm-stuff', 'build-artifacts', ELM_VER,
+            options.user, options.package, options.version, moduleNameParts.join('-') + 'i');
+}
+
+function walkSync(dir) {
+  return _walkSync([dir], []);
+}
+
+function _walkSync(dirArr, result) {
+  const dir = dirArr.join(path.sep);
+
+  fs.readdirSync(dir).forEach(file => {
+    const dirFileArr = dirArr.concat([file]);
+
+    result = fs.statSync(path.join(dir, file)).isDirectory()
+      ? _walkSync(dirFileArr, result)
+      : (file.endsWith('.elm') ? result.concat([dirFileArr]) : result);
+  });
+  return result;
+}
 
 function fail (msg) {
   process.stderr.write(msg)

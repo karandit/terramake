@@ -1,6 +1,6 @@
 {
   "name": "terramake",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Type-safe Infrastructure-as-Code",
   "main": "index.js",
   "bin": {
@@ -19,7 +19,6 @@
   "dependencies": {
     "meow": "5.0.0",
     "node-elm-compiler": "4.5.0",
-    "node-elm-repl": "4.1.0",
-    "temp": "0.8.3"
+    "node-elm-repl": "4.1.0"
   }
 }
