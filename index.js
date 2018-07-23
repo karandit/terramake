@@ -6,11 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const compiler = require('node-elm-compiler')
 const elmiParser = require('node-elm-repl/src/parser.js');
-const meow = require('meow')
-const cli = meow(`
-    Usage
-      $ terramake
-`)
 
 if (!fs.existsSync('./elm-package.json')) {
   fail('Error: This command needs to be executed from the root of the elm project.')
@@ -31,7 +26,6 @@ const elmFilePaths = elmPackageJson['source-directories'].reduce((acc, srcDir) =
 var targetPath = path.join(process.cwd(), IAC_OUTPUT, elmPackageJson.package + '.js');
 var compileOptions = { output: targetPath, yes: true, verbose: true, warn: true, processOpts: { stdio: 'pipe' } };
 
-//TODO: figure out how to not save to a file the js (see: compileString)
 compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compileOptions)
 .on('close', function(exitCode) {
   if (exitCode == 0) {
@@ -46,7 +40,6 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
 
       if (isTerramakeMainModule(parsedModule)) {
         var elmModules = elmPathParts.map(x => x.replace(/.elm/, ''));
-        console.log("Output generated for module " + elmModules.join(path.sep));
 
         var iacDirs = [IAC_OUTPUT].concat(elmModules.slice(0, elmModules.length - 1))
         iacDirs.reduce((currentPath, folder) => {
@@ -59,8 +52,10 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
 
         var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
         elmModule.worker({ "filePath" : [IAC_OUTPUT].concat(elmModules).join(path.sep)});
+        console.log("Output generated for module " + elmModules.join(path.sep));
       }
     });
+    fs.unlinkSync(targetPath);
  }
 });
 
