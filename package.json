@@ -1,6 +1,6 @@
 {
   "name": "terramake",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Type-safe Infrastructure-as-Code",
   "main": "index.js",
   "bin": {
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/karandit/terramake#readme",
   "dependencies": {
+    "meow": "5.0.0",
     "node-elm-compiler": "4.5.0",
     "node-elm-repl": "4.1.0"
   }

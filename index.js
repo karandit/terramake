@@ -29,7 +29,8 @@ var compileOptions = { output: targetPath, yes: true, verbose: true, warn: true,
 compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compileOptions)
 .on('close', function(exitCode) {
   if (exitCode == 0) {
-    console.log('Successfully compiled.');
+    console.log();
+    console.log("  " + green("✔︎") + " Successfully compiled.");
     console.log();
     var Elm = require(targetPath);
     elmFilePaths.forEach(pathParts => {
@@ -52,7 +53,7 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
 
         var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
         elmModule.worker({ "filePath" : [IAC_OUTPUT].concat(elmModules).join(path.sep)});
-        console.log("Output generated for module " + elmModules.join(path.sep));
+        console.log("  " + green("✔︎") + " Output generated for module " + yellow(elmModules.join(path.sep)));
       }
     });
     fs.unlinkSync(targetPath);
@@ -105,6 +106,14 @@ function _walkSync(dirArr, result) {
       : (file.endsWith('.elm') ? result.concat([dirFileArr]) : result);
   });
   return result;
+}
+
+function green(msg) {
+  return "\x1b[32m" + msg + "\x1b[0m";
+}
+
+function yellow(msg) {
+  return "\x1b[33m" + msg + "\x1b[0m";
 }
 
 function fail (msg) {
