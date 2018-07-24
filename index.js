@@ -1,11 +1,40 @@
 #!/usr/bin/env node
 const ELM_VER = '0.18.0';
-const IAC_OUTPUT = 'iac';
 
 const fs = require('fs');
 const path = require('path');
 const compiler = require('node-elm-compiler')
 const elmiParser = require('node-elm-repl/src/parser.js');
+const meow = require('meow');
+
+const cli = meow(`
+    Usage
+      $ terramake [OPTIONS]
+
+    Options
+      --help                    Print this page
+      --version                 Print Terramake version
+      --outputFolder, -o        Path of the generated tfvars files. Default is '.'
+      --singleFilePerFolder, -s Generate each tfvars file in its own folder. Default is true
+
+    Examples
+      $ foo -o iac -s false
+`, {
+    flags: {
+        outputFolder: {
+            type: 'string',
+            alias: 'o',
+            default: '.'
+        },
+        singleFilePerFolder: {
+            type: 'boolean',
+            alias: 's',
+            default: true
+        }
+    }
+});
+
+const iacOutput = cli.flags.outputFolder;
 
 if (!fs.existsSync('./elm-package.json')) {
   fail('Error: This command needs to be executed from the root of the elm project.')
@@ -23,7 +52,7 @@ elmPackageJson.package = repoMatches[2];
 
 const elmFilePaths = elmPackageJson['source-directories'].reduce((acc, srcDir) => acc.concat(walkSync(srcDir)), []);
 
-var targetPath = path.join(process.cwd(), IAC_OUTPUT, elmPackageJson.package + '.js');
+var targetPath = path.join(process.cwd(), iacOutput, elmPackageJson.package + '.js');
 var compileOptions = { output: targetPath, yes: true, verbose: true, warn: true, processOpts: { stdio: 'pipe' } };
 
 compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compileOptions)
@@ -42,7 +71,7 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
       if (isTerramakeMainModule(parsedModule)) {
         var elmModules = elmPathParts.map(x => x.replace(/.elm/, ''));
 
-        var iacDirs = [IAC_OUTPUT].concat(elmModules.slice(0, elmModules.length - 1))
+        var iacDirs = [iacOutput].concat(elmModules.slice(0, elmModules.length - 1))
         iacDirs.reduce((currentPath, folder) => {
            var newPath = path.join(currentPath, folder);
            if (!fs.existsSync(newPath)){
@@ -52,7 +81,7 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
          }, '');
 
         var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
-        elmModule.worker({ "filePath" : [IAC_OUTPUT].concat(elmModules).join(path.sep)});
+        elmModule.worker({ "filePath" : [iacOutput].concat(elmModules).join(path.sep)});
         console.log("  " + green("✔︎") + " Output generated for module " + yellow(elmModules.join(path.sep)));
       }
     });
