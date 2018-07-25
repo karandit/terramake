@@ -15,10 +15,10 @@ const cli = meow(`
       --help                    Print this page
       --version                 Print Terramake version
       --outputFolder, -o        Path of the generated tfvars files. Default is '.'
-      --singleFilePerFolder, -s Generate each tfvars file in its own folder. Default is true
+      --singleFilePerFolder, -s Generate each tfvars file in its own folder. Default is false
 
     Examples
-      $ foo -o iac -s false
+      $ terramake -o iac -s
 `, {
     flags: {
         outputFolder: {
@@ -29,7 +29,7 @@ const cli = meow(`
         singleFilePerFolder: {
             type: 'boolean',
             alias: 's',
-            default: true
+            default: false
         }
     }
 });
@@ -37,7 +37,7 @@ const cli = meow(`
 const iacOutput = cli.flags.outputFolder;
 
 if (!fs.existsSync('./elm-package.json')) {
-  fail('Error: This command needs to be executed from the root of the elm project.')
+  fail('This command needs to be executed from the root of the elm project.')
 }
 
 var elmPackageJson = JSON.parse(fs.readFileSync('./elm-package.json', 'utf8'));
@@ -45,7 +45,7 @@ var elmPackageJson = JSON.parse(fs.readFileSync('./elm-package.json', 'utf8'));
 const repoRegExp = /https?:\/\/github\.com\/(\w*)\/(\w*)\.git/;
 var repoMatches = repoRegExp.exec(elmPackageJson.repository);
 if (repoMatches == null) {
-  fail('Error: The elm-package.json contains an invalid value for the repository field.')
+  fail('The elm-package.json contains an invalid value for the repository field.')
 }
 elmPackageJson.user = repoMatches[1];
 elmPackageJson.package = repoMatches[2];
@@ -57,11 +57,15 @@ var compileOptions = { output: targetPath, yes: true, verbose: true, warn: true,
 
 compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compileOptions)
 .on('close', function(exitCode) {
-  if (exitCode == 0) {
+  if (exitCode != 0) {
     console.log();
-    console.log("  " + green("✔︎") + " Successfully compiled.");
+    fail(" Ooops, something went wrong. Please be sure before using Terramake to fetch the dependencies by using elm-github-install");
+  } else {
+    console.log();
+    success("Successfully compiled.");
     console.log();
     var Elm = require(targetPath);
+    var foundMain = false
     elmFilePaths.forEach(pathParts => {
       const elmPathParts = pathParts.slice(1);
       const moduleElmiPath = getModuleElmiPath(elmPackageJson, elmPathParts);
@@ -69,9 +73,12 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
       var parsedModule = elmiParser.parse(buffer);
 
       if (isTerramakeMainModule(parsedModule)) {
+        foundMain = true;
         var elmModules = elmPathParts.map(x => x.replace(/.elm/, ''));
 
-        var iacDirs = [iacOutput].concat(elmModules.slice(0, elmModules.length - 1))
+        var iacPath = [iacOutput].concat(elmModules).concat(cli.flags.singleFilePerFolder ? ["terraform"] : []);
+        var iacDirs = iacPath.slice(0, iacPath.length - 1); //cut the last one, which is the file
+
         iacDirs.reduce((currentPath, folder) => {
            var newPath = path.join(currentPath, folder);
            if (!fs.existsSync(newPath)){
@@ -81,10 +88,14 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
          }, '');
 
         var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
-        elmModule.worker({ "filePath" : [iacOutput].concat(elmModules).join(path.sep)});
-        console.log("  " + green("✔︎") + " Output generated for module " + yellow(elmModules.join(path.sep)));
+        var filePath = iacPath.join(path.sep);
+        elmModule.worker({ "filePath" : filePath});
+        success("Generated " + yellow(filePath + ".tfvars"));
       }
     });
+    if (!foundMain) {
+      warning("No Terramake compatible main function found in any modules.");
+    }
     fs.unlinkSync(targetPath);
  }
 });
@@ -137,15 +148,13 @@ function _walkSync(dirArr, result) {
   return result;
 }
 
-function green(msg) {
-  return "\x1b[32m" + msg + "\x1b[0m";
-}
+function red(msg)     {  return "\x1b[31m" + msg + "\x1b[0m"; }
+function green(msg)   {  return "\x1b[32m" + msg + "\x1b[0m"; }
+function yellow(msg)  {  return "\x1b[33m" + msg + "\x1b[0m"; }
 
-function yellow(msg) {
-  return "\x1b[33m" + msg + "\x1b[0m";
-}
-
-function fail (msg) {
-  process.stderr.write(msg)
+function fail(msg) {
+  process.stderr.write("  " + red("❌") + "Error: " + msg)
   process.exit(1)
 }
+function warning(msg) {  console.log("  " + yellow("❗") + " Warning: " + msg); }
+function success(msg) {  console.log("  " + green("✔︎") + " " + msg); }
