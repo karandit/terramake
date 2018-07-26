@@ -42,7 +42,7 @@ if (!fs.existsSync('./elm-package.json')) {
 
 var elmPackageJson = JSON.parse(fs.readFileSync('./elm-package.json', 'utf8'));
 
-const repoRegExp = /https?:\/\/github\.com\/(\w*)\/(\w*)\.git/;
+const repoRegExp = /https?:\/\/github\.com\/([-\w]*)\/([-\w]*)\.git/;
 var repoMatches = repoRegExp.exec(elmPackageJson.repository);
 if (repoMatches == null) {
   fail('The elm-package.json contains an invalid value for the repository field.')
@@ -90,7 +90,7 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
         var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
         var filePath = iacPath.join(path.sep);
         elmModule.worker({ "filePath" : filePath});
-        success("Generated " + yellow(filePath + ".tfvars"));
+        success("Generated " + green(filePath + ".tfvars"));
       }
     });
     if (!foundMain) {

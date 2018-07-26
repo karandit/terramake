@@ -2,6 +2,8 @@
 
 A cli tool for compiling [Elm](http://elm-lang.org/) to [Terraform .tfvars](https://www.terraform.io/docs/configuration/variables.html#variable-files) file.
 
+![usage](https://raw.githubusercontent.com/wiki/karandit/terramake/term.svg?sanitize=true)
+
 Usage
 
     npm install -g terramake
