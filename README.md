@@ -4,8 +4,12 @@ A cli tool for compiling [Elm](http://elm-lang.org/) to [Terraform .tfvars](http
 
 ![usage](https://rawgit.com/karandit/terramake/gh-pages/term-sheet.svg)
 
+Prerequisites
+
+    $ npm install -g elm elm-github-install terramake
+
 Usage
 
-    npm install -g terramake
-    cd your_elm_project
-    terramake
+    $ cd your_elm_project
+    $ elm-github-install
+    $ terramake
