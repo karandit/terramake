@@ -65,8 +65,9 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
     success("Successfully compiled.");
     console.log();
     var Elm = require(targetPath);
-    var foundMain = false
+    var foundMain = false;
     elmFilePaths.forEach(pathParts => {
+
       const elmPathParts = pathParts.slice(1);
       const moduleElmiPath = getModuleElmiPath(elmPackageJson, elmPathParts);
       const buffer = fs.readFileSync(moduleElmiPath);
@@ -89,7 +90,7 @@ compiler.compile(elmFilePaths.map(pathParts => pathParts.join(path.sep)), compil
 
         var elmModule = elmModules.reduce((acc, cur) => acc[cur], Elm);
         var filePath = iacPath.join(path.sep);
-        elmModule.worker({ "filePath" : filePath});
+        elmModule.worker([{ "filePath" : filePath}, {}]);
         success("Generated " + green(filePath + ".tfvars"));
       }
     });
@@ -113,11 +114,17 @@ function isTerramakeMainModule(parsedModule) {
 
         && f.value.object.length == 3
 
-        && f.value.object[0].type == 'aliased'
-        && f.value.object[0].def.name == 'Flags'
-        && f.value.object[0].def.user == 'karandit'
-        && f.value.object[0].def.package == 'elm-terramake'
-        && f.value.object[0].def.path[0] == 'Terramake'
+        && f.value.object[0].type == 'app'
+        && f.value.object[0].subject.type == 'type'
+        && f.value.object[0].subject.def.name == '_Tuple2'
+
+        && f.value.object[0].object.length == 2
+
+        && f.value.object[0].object[0].type == 'aliased'
+        && f.value.object[0].object[0].def.name == 'Flags'
+        && f.value.object[0].object[0].def.user == 'karandit'
+        && f.value.object[0].object[0].def.package == 'elm-terramake'
+        && f.value.object[0].object[0].def.path[0] == 'Terramake'
 
         && f.value.object[1].type == 'type'
         && f.value.object[1].def.name == '_Tuple0'

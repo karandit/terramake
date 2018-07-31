@@ -1,4 +1,6 @@
 # Terramake
+![npm](https://img.shields.io/npm/v/terramake.svg)
+![npm](https://img.shields.io/npm/dt/terramake.svg)
 
 A cli tool for compiling [Elm](http://elm-lang.org/) to [Terraform .tfvars](https://www.terraform.io/docs/configuration/variables.html#variable-files) file.
 

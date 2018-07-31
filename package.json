@@ -1,6 +1,6 @@
 {
   "name": "terramake",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Type-safe Infrastructure-as-Code",
   "main": "index.js",
   "bin": {
@@ -15,6 +15,7 @@
   "bugs": {
     "url": "https://github.com/karandit/terramake/issues"
   },
+  "keywords": ["elm", "terraform", "type-safe", "iac", "infrastructure", "infrastructure-as-code", "devops"],
   "homepage": "https://github.com/karandit/terramake#readme",
   "dependencies": {
     "meow": "5.0.0",
